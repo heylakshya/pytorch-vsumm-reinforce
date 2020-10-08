@@ -19,9 +19,9 @@ $ python parse_json.py -p blah_blah_blah/rewards.json -i 0
 # Rewards in RL are typically have a high variance,
 # so it's better to smooth them out for better analysis
 def movingaverage(values, window):
-    weights = np.repeat(1.0, window)/window
-    sma = np.convolve(values, weights, 'valid')
-    return sma
+	weights = np.repeat(1.0, window)/window
+	sma = np.convolve(values, weights, 'valid')
+	return sma
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--path', type=str, required=True, help="path to rewards.json; output saved to the same dir")
