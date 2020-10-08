@@ -18,43 +18,43 @@ parser.add_argument('--train-percent', type=float, default=0.8, help="percentage
 args = parser.parse_args()
 
 def split_random(keys, num_videos, num_train):
-    """Random split"""
-    train_keys, test_keys = [], []
-    rnd_idxs = np.random.choice(range(num_videos), size=num_train, replace=False)
-    for key_idx, key in enumerate(keys):
-        if key_idx in rnd_idxs:
-            train_keys.append(key)
-        else:
-            test_keys.append(key)
+	"""Random split"""
+	train_keys, test_keys = [], []
+	rnd_idxs = np.random.choice(range(num_videos), size=num_train, replace=False)
+	for key_idx, key in enumerate(keys):
+		if key_idx in rnd_idxs:
+			train_keys.append(key)
+		else:
+			test_keys.append(key)
 
-    assert len(set(train_keys) & set(test_keys)) == 0, "Error: train_keys and test_keys overlap"
+	assert len(set(train_keys) & set(test_keys)) == 0, "Error: train_keys and test_keys overlap"
 
-    return train_keys, test_keys
+	return train_keys, test_keys
 
 def create():
-    print("==========\nArgs:{}\n==========".format(args))
-    print("Goal: randomly split data for {} times, {:.1%} for training and the rest for testing".format(args.num_splits, args.train_percent))
-    print("Loading dataset from {}".format(args.dataset))
-    dataset = h5py.File(args.dataset, 'r')
-    keys = dataset.keys()
-    num_videos = len(keys)
-    num_train = int(math.ceil(num_videos * args.train_percent))
-    num_test = num_videos - num_train
-    print("Split breakdown: # total videos {}. # train videos {}. # test videos {}".format(num_videos, num_train, num_test))
-    splits = []
+	print("==========\nArgs:{}\n==========".format(args))
+	print("Goal: randomly split data for {} times, {:.1%} for training and the rest for testing".format(args.num_splits, args.train_percent))
+	print("Loading dataset from {}".format(args.dataset))
+	dataset = h5py.File(args.dataset, 'r')
+	keys = dataset.keys()
+	num_videos = len(keys)
+	num_train = int(math.ceil(num_videos * args.train_percent))
+	num_test = num_videos - num_train
+	print("Split breakdown: # total videos {}. # train videos {}. # test videos {}".format(num_videos, num_train, num_test))
+	splits = []
 
-    for split_idx in range(args.num_splits):
-        train_keys, test_keys = split_random(keys, num_videos, num_train)
-        splits.append({
-            'train_keys': train_keys,
-            'test_keys': test_keys,
-            })
+	for split_idx in range(args.num_splits):
+		train_keys, test_keys = split_random(keys, num_videos, num_train)
+		splits.append({
+			'train_keys': train_keys,
+			'test_keys': test_keys,
+			})
 
-    saveto = osp.join(args.save_dir, args.save_name + '.json')
-    write_json(splits, saveto)
-    print("Splits saved to {}".format(saveto))
+	saveto = osp.join(args.save_dir, args.save_name + '.json')
+	write_json(splits, saveto)
+	print("Splits saved to {}".format(saveto))
 
-    dataset.close()
+	dataset.close()
 
 if __name__ == '__main__':
-    create()
+	create()
