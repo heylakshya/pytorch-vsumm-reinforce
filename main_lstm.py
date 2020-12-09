@@ -35,7 +35,7 @@ parser.add_argument('--rnn-cell', type=str, default='lstm', help="RNN cell type 
 # Optimization options
 parser.add_argument('--lr', type=float, default=1e-05, help="learning rate (default: 1e-05)")
 parser.add_argument('--weight-decay', type=float, default=1e-05, help="weight decay rate (default: 1e-05)")
-parser.add_argument('--max-epoch', type=int, default=60, help="maximum epoch for training (default: 60)")
+parser.add_argument('--max-epoch', type=int, default=180, help="maximum epoch for training (default: 60)")
 parser.add_argument('--stepsize', type=int, default=30, help="how many steps to decay learning rate (default: 30)")
 parser.add_argument('--gamma', type=float, default=0.1, help="learning rate decay (default: 0.1)")
 parser.add_argument('--num-episode', type=int, default=5, help="number of episodes (default: 5)")
@@ -161,9 +161,11 @@ def evaluate(model, dataset, test_keys, use_gpu):
 	with torch.no_grad():
 		model.eval()
 		fms = []
+		taus = []
+		human_taus = []
 		eval_metric = 'avg' if args.metric == 'tvsum' else 'max'
 
-		if args.verbose: table = [["No.", "Video", "F-score"]]
+		if args.verbose: table = [["No.", "Video", "F-score", "Kendall's Tau", "Avg human score"]]
 
 		if args.save_results:
 			h5_res = h5py.File(osp.join(args.save_dir, 'result.h5'), 'w')
@@ -184,15 +186,18 @@ def evaluate(model, dataset, test_keys, use_gpu):
 			machine_summary = vsum_tools.generate_summary(probs, cps, num_frames, nfps, positions)
 			fm, _, _ = vsum_tools.evaluate_summary(machine_summary, user_summary, eval_metric)
 			fms.append(fm)
-
+			kendaltau, human_avg_score = vsum_tools.kendaltau(machine_summary, user_summary)
+			taus.append(kendaltau)
+			human_taus.append(human_avg_score)
 			if args.verbose:
-				table.append([key_idx+1, key, "{:.1%}".format(fm)])
+				table.append([key_idx+1, key, "{:.4f}".format(fm), "{:.4f}".format(kendaltau), "{:.4f}".format(human_avg_score)])
 
 			if args.save_results:
 				h5_res.create_dataset(key + '/score', data=probs)
 				h5_res.create_dataset(key + '/machine_summary', data=machine_summary)
 				h5_res.create_dataset(key + '/gtscore', data=dataset[key]['gtscore'][...])
 				h5_res.create_dataset(key + '/fm', data=fm)
+				h5_res.create_dataset(key + '/tau', data=kendaltau)
 
 	if args.verbose:
 		print(tabulate(table))
@@ -200,9 +205,13 @@ def evaluate(model, dataset, test_keys, use_gpu):
 	if args.save_results: h5_res.close()
 
 	mean_fm = np.mean(fms)
-	print("Average F-score {:.1%}".format(mean_fm))
+	print("Average F-score {:.4%}".format(mean_fm))
 
-	return mean_fm
+	mean_tau = np.mean(taus)
+	print("Average Kendall's tau {:.4f}".format(mean_tau))
+	human_tau = np.mean(human_taus)
+	print("Average Human tau {:.4f}".format(human_tau))
+	return mean_fm, mean_tau
 
 if __name__ == '__main__':
 	main()
