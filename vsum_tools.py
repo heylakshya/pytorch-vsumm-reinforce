@@ -1,6 +1,7 @@
 import numpy as np
 from knapsack import knapsack_dp
 import math
+from scipy import stats
 
 def generate_summary(ypred, cps, n_frames, nfps, positions, proportion=0.15, method='knapsack'):
 	"""Generate keyshot-based video summary i.e. a binary vector.
@@ -60,6 +61,33 @@ def generate_summary(ypred, cps, n_frames, nfps, positions, proportion=0.15, met
 	summary = np.delete(summary, 0) # delete the first element
 	return summary
 
+def kendaltau(machine_summary, user_summary):
+	machine_summary = machine_summary.astype(np.float32)
+	user_summary = user_summary.astype(np.float32)
+	n_users = user_summary.shape[0]
+	human_tau = []
+	# print("shape machinesumm:{} \t shape usersum:{}".format(machine_summary.shape, user_summary.shape))
+	for idx0 in range(n_users - 1):
+		u0_sort_order = np.argsort(user_summary[idx0])
+		u0_ranking = np.argsort(user_summary[idx0, u0_sort_order])
+		for idx1 in range(idx0+1, n_users):
+			u1_ranking = np.argsort(user_summary[idx1, u0_sort_order])
+			human_tau.append(stats.kendalltau(u0_ranking, u1_ranking))
+	human_avg_score = np.mean(human_tau)
+
+	# print("human human score:{}".format(human_avg_score))
+
+	machine_sort_order = np.argsort(machine_summary)
+	machine_summary_sorted = machine_summary[machine_sort_order]
+	machine_rankings = np.argsort(machine_summary_sorted)
+	taus = []
+	for idx in range(n_users):
+		user_summary_pseudo_sorted = user_summary[idx, machine_sort_order]
+		user_rankings = np.argsort(user_summary_pseudo_sorted)
+		taus.append(stats.kendalltau(machine_rankings, user_rankings))
+	avg_kendalltau = np.mean(taus)
+	return float(avg_kendalltau), float(human_avg_score)
+
 def evaluate_summary(machine_summary, user_summary, eval_metric='avg'):
 	"""Compare machine summary with user summary (keyshot-based).
 	Args:
@@ -111,3 +139,4 @@ def evaluate_summary(machine_summary, user_summary, eval_metric='avg'):
 		final_rec = rec_arr[max_idx]
 	
 	return final_f_score, final_prec, final_rec
+	# return rank_auc(machine_summary, user_summary)
