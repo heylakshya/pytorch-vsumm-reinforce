@@ -1,6 +1,9 @@
 # Custom
 datasets/
 log/
+frames/
+.vscode/
+
 
 # OS generated files #
 ######################
